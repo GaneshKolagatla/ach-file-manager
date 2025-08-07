@@ -17,13 +17,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ach.dto.ACHFileRequest;
+import com.ach.dto.DownloadDto;
 import com.ach.dto.PaymentInstruction;
+import com.ach.model.SftpConfig;
+import com.ach.repo.SftpConfigRepo;
 import com.ach.service.PGPEncryptionService;
 import com.ach.service.SftpUploadService;
 
 @RestController
 @RequestMapping("/generate-ach")
 public class ACHFileController {
+
+	@Autowired
+	SftpConfigRepo repo;
 
 	@Autowired
 	private PGPEncryptionService encryptionService;
@@ -96,11 +102,14 @@ public class ACHFileController {
 	}
 
 	@PostMapping("/download")
-	public String downloadAndDecryptACHFile(@RequestBody ACHFileRequest request) {
-		try {
-			Files.createDirectories(Paths.get(DOWNLOAD_DIR));
+	public String downloadAndDecryptACHFile(@RequestBody DownloadDto requestt) {
+		SftpConfig request = repo.findByClientKey(requestt.getClient_key()).orElseThrow(
+				() -> new RuntimeException("SFTP config not found for client key: " + requestt.getClient_key()));
 
-			String fileName = request.getFileName(); // You’ll need to add this in your `ACHFileRequest` DTO
+		try {
+
+			Files.createDirectories(Paths.get(DOWNLOAD_DIR));
+			String fileName = requestt.getFile_name(); // You’ll need to add this in your `ACHFileRequest` DTO
 			File encryptedFile = Paths.get(DOWNLOAD_DIR, fileName).toFile();
 
 			// Step 1: Download file from SFTP
